@@ -34,10 +34,13 @@ namespace Core
     {
         public static IEnumerable<Result<Vehicle>> CreateRandomVehicles(Velocity minVelocity, Velocity maxVelocity)
         {
-            var randomVelocityValue = Utilities.GetRandomDouble(minVelocity.Value, maxVelocity.Value);
-            yield return Velocity.Create(randomVelocityValue)
-                .OnSuccess(velocity => Vehicle.Create(velocity))
-                .OnBoth(vehicleResult => vehicleResult);
+            while(true)
+            {
+                var randomVelocityValue = Utilities.GetRandomDouble(minVelocity.Value, maxVelocity.Value);
+                yield return Velocity.Create(randomVelocityValue)
+                    .OnSuccess(velocity => Vehicle.Create(velocity))
+                    .OnBoth(vehicleResult => vehicleResult);
+            }
         }
     }
 }

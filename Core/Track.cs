@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using Core.Utils;
 using CSharpFunctionalExtensions;
@@ -39,6 +40,8 @@ namespace Core
     {
         public static Result<Track> AddVehicle(this Track track, Vehicle vehicle)
         {
+            if(track.Vehicles.Count() >= track.MaxVehiclesCuota)
+                return Result.Fail<Track>($"Cannot add more vehicles to this Track. Current limit is: {track.MaxVehiclesCuota}");
             var newVehicleList = new List<Vehicle>(track.Vehicles) { vehicle };
             return Result.Ok(Track.Create(track.Id, track.MaxVehiclesCuota, newVehicleList, track.Obstacles));
         }
@@ -51,9 +54,12 @@ namespace Core
 
         public static IEnumerable<Result<Track>> CreateRandomTracks(int minVehiclesCuota, int maxVehiclesCuota)
         {
-            var maxVehiclesCuotaRandomValue = Utilities.GetRandomInteger(minVehiclesCuota, maxVehiclesCuota);
-            yield return Track.CreateEmpty(maxVehiclesCuotaRandomValue)
-                .OnBoth(trackResult => trackResult);
+            while(true)
+            {
+                var maxVehiclesCuotaRandomValue = Utilities.GetRandomInteger(minVehiclesCuota, maxVehiclesCuota);
+                yield return Track.CreateEmpty(maxVehiclesCuotaRandomValue)
+                    .OnBoth(trackResult => trackResult);
+            }
         }
     }
 }
