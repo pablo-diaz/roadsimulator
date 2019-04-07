@@ -1,4 +1,5 @@
 ﻿using Application;
+using CSharpFunctionalExtensions;
 
 namespace RoadSimulation
 {
@@ -6,11 +7,9 @@ namespace RoadSimulation
     {
         public static void Main(string[] args)
         {
-            var simulation = new Simulation(LogInfoToConsole);
-            var simulationInfo = simulation.Simulate();
-            if(simulationInfo.IsFailure)
-                LogErrorToConsole(simulationInfo.Error);
-
+            Simulation.InitializeWithLogger(LogInfoToConsole)
+                .OnSuccess(simulation => simulation.Simulate())
+                .OnFailure(LogErrorToConsole);
             LogInfoToConsole("Done.");
         }
 

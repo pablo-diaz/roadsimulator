@@ -62,13 +62,18 @@ namespace Core
             Func<int, int, IEnumerable<Result<Track>>> CreateRandomTracksFn)
         {
             var newRoad = road;
+            var numTracksAdded = 0;
             foreach(var randomTrackResult in CreateRandomTracksFn(minVehiclesCuota, maxVehiclesCuota))
             {
-                if(randomTrackResult.IsFailure)
-                    return Result.Fail<Road>(randomTrackResult.Error);
-                newRoad = newRoad.AddTrack(randomTrackResult.Value);
+                var newRoadResult = randomTrackResult
+                    .OnSuccess(randomTrack => newRoad.AddTrack(randomTrack))
+                    .OnSuccessTry(nextRoad => newRoad = nextRoad);
 
-                if(newRoad.Tracks.Count() >= maxTracksToGenerate)
+                if(newRoadResult.IsFailure)
+                    return newRoadResult;
+
+                numTracksAdded++;
+                if(numTracksAdded >= maxTracksToGenerate)
                     break;
             }
             return Result.Ok(newRoad);
