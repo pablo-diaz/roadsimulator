@@ -13,9 +13,9 @@ namespace Application
 
         private readonly Velocity _minVelocitySetting;
         private readonly Velocity _maxVelocitySetting;
-        private readonly int _minVehiclesCuotaSetting = 10;
-        private readonly int _maxVehiclesCuotaSetting = 30;
-        private readonly int _maxTracksToCreate = 10;
+        private readonly int _minVehiclesCuotaSetting = 5;
+        private readonly int _maxVehiclesCuotaSetting = 10;
+        private readonly int _maxTracksToCreate = 20;
         private readonly int _maxVehiclesToCreate = 50;
 
         private Simulation(Action<string> logInfoFn, Velocity minVelocity, Velocity maxVelocity)
@@ -57,7 +57,8 @@ namespace Application
                 .AddRandomTracks(this._maxTracksToCreate, this._minVehiclesCuotaSetting, 
                     this._maxVehiclesCuotaSetting, TrackExtensions.CreateRandomTracks)
                 .OnSuccess(road => road.AddRandomVehiclesToRoad(this._minVelocitySetting, 
-                    this._maxVelocitySetting, this._maxVehiclesToCreate, VehicleExtensions.CreateRandomVehicles));
+                    this._maxVelocitySetting, this._maxVehiclesToCreate, 
+                    VehicleExtensions.CreateRandomVehicles, this._logInfoFn));
         }
     }
 }
