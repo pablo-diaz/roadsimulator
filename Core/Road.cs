@@ -44,12 +44,27 @@ namespace Core
                 return Result.Fail<Road>("There are no Tracks in this Road yet");
             
             var newTrackList = new List<Track>(road.Tracks);
-            var (trackChosen, trackPosition) = road.Tracks.ToList().GetRandomItem().Value;
-            var newTrackResult = trackChosen.AddVehicle(vehicle);
-            if(newTrackResult.IsFailure)
-                return Result.Fail<Road>(newTrackResult.Error);
-            newTrackList = newTrackList.ReplaceAt(trackPosition, newTrackResult.Value);
+            var trackInfoResult = road.TryInsertingVehicleToRandomTrack(vehicle);
+            if(trackInfoResult.IsFailure)
+                return Result.Fail<Road>(trackInfoResult.Error);
+            
+            newTrackList = newTrackList.ReplaceAt(trackInfoResult.Value.trackPosition, trackInfoResult.Value.newTrack);
             return Result.Ok<Road>(Road.Create(road.Id, newTrackList));
+        }
+
+        public static Result<(Track newTrack, int trackPosition)> TryInsertingVehicleToRandomTrack(this Road road, Vehicle vehicle)
+        {
+            while(true) // should there exist a limit ?
+            {
+                var maybeRandomTrackInfo = road.Tracks.ToList().GetRandomItem();
+                if(maybeRandomTrackInfo.HasNoValue)
+                    return Result.Fail<(Track, int)>("There are no Tracks in this Road yet");
+                var newTrackResult = maybeRandomTrackInfo.Value.chosenObject.AddVehicle(vehicle);
+                if(newTrackResult.IsSuccess)
+                    return Result.Ok((newTrackResult.Value, maybeRandomTrackInfo.Value.objectPosition));
+                if(!newTrackResult.Error.StartsWith("Cannot add more vehicles to this Track. Current limit is"))
+                    return Result.Fail<(Track, int)>(newTrackResult.Error);
+            }
         }
 
         public static int GetTotalVehiclesCountPlacedInTracks(this Road road)
