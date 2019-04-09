@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Core;
 using Core.Types;
@@ -34,10 +37,11 @@ namespace Application
                 minAndMaxVelocityResult.Value.maxVelocity));
         }
 
-        public Result Simulate()
+        public async Task<Result> Simulate(Action<string> logger, CancellationToken cancellationToken)
         {
             this._logInfoFn("Starting simulation set up ....");
-            return SetupRoad();
+            return await SetupRoad()
+                .OnSuccess(road => StartSimulationThreadsForRoad(road, logger, cancellationToken));
         }
 
         private static Result<(Velocity minVelocity, Velocity maxVelocity)> SetupMinAndMaxVelocities()
@@ -59,6 +63,26 @@ namespace Application
                 .OnSuccess(road => road.AddRandomVehiclesToRoad(this._minVelocitySetting, 
                     this._maxVelocitySetting, this._maxVehiclesToCreate, 
                     VehicleExtensions.CreateRandomVehicles, this._logInfoFn));
+        }
+
+        private async Task<Result> StartSimulationThreadsForRoad(Road road, Action<string> logger, CancellationToken cancellationToken)
+        {
+            foreach(var track in road.Tracks)
+                await StartSimulationThreadsForTrack(track, logger, cancellationToken);
+            return Result.Ok();
+        }
+
+        private async Task<Result> StartSimulationThreadsForTrack(Track track, Action<string> logger, CancellationToken cancellationToken)
+        {
+            foreach(var vehicle in track.Vehicles)
+            {
+                var newVehicleResult = await Task.Factory.StartNew(() => { 
+                    return vehicle.Drive()
+                        .OnSuccess(newVehicle => newVehicle.PrintToLog(logger));
+                }, cancellationToken);
+            }
+
+            return Result.Ok();
         }
     }
 }

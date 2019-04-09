@@ -3,7 +3,7 @@ using CSharpFunctionalExtensions;
 namespace Core.Types 
 {
     // Velocity in Kilometer per hour
-    public class Velocity
+    public sealed class Velocity
     {
         public double Value { get; }
         
@@ -22,6 +22,46 @@ namespace Core.Types
             
             var obj = new Velocity(value);
             return Result.Ok<Velocity>(obj);
+        }
+
+        public static Result<Velocity> operator +(Velocity velocity1, Velocity velocity2) => 
+            Create(velocity1.Value + velocity2.Value);
+
+        public static Result<Velocity> operator +(Velocity velocity1, Result<Velocity> velocity2Result)
+        {
+            if(velocity2Result.IsFailure)
+                return velocity2Result;
+            return velocity1 + velocity2Result.Value;
+        }
+
+        public static bool operator ==(Velocity velocity1, Velocity velocity2) =>
+            velocity1.Value == velocity2.Value;
+
+        public static bool operator !=(Velocity velocity1, Velocity velocity2) =>
+            velocity1.Value != velocity2.Value;
+
+        public static bool operator <(Velocity velocity1, Velocity velocity2) => 
+            velocity1.Value < velocity2.Value;
+
+        public static bool operator >(Velocity velocity1, Velocity velocity2) =>
+            velocity1.Value > velocity2.Value;
+
+        public static bool operator <=(Velocity velocity1, Velocity velocity2) => 
+            velocity1.Value <= velocity2.Value;
+
+        public static bool operator >=(Velocity velocity1, Velocity velocity2) =>
+            velocity1.Value >= velocity2.Value;
+
+        public override string ToString() => this.Value.ToString();
+
+        public override int GetHashCode() => this.Value.GetHashCode();
+
+        public override bool Equals(object obj)
+        {
+            var parsedVelocity = obj as Velocity;
+            if (parsedVelocity == null) 
+                return false;
+            return parsedVelocity.Value == this.Value; 
         }
     }
 }
