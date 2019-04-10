@@ -9,6 +9,8 @@ namespace RoadSimulation
 {
     public class Program
     {
+        private static object __lockObj = new object();
+
         public static async Task Main(string[] args)
         {
             var cancellationToken = new CancellationToken();
@@ -21,18 +23,24 @@ namespace RoadSimulation
 
         private static void LogInfoToConsole(string info)
         {
-            var currentColor = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.DarkYellow;
-            Console.WriteLine(info);
-            Console.ForegroundColor = currentColor;
+            lock(__lockObj)
+            {
+                var currentColor = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.WriteLine(info);
+                Console.ForegroundColor = currentColor;
+            }
         }
 
         private static void LogErrorToConsole(string error)
         {
-            var currentColor = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(error);
-            Console.ForegroundColor = currentColor;
+            lock(__lockObj)
+            {
+                var currentColor = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(error);
+                Console.ForegroundColor = currentColor;
+            }
         }
     }
 }

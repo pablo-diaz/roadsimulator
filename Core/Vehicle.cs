@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Core.Types;
 using Core.Utils;
 using CSharpFunctionalExtensions;
@@ -33,6 +34,9 @@ namespace Core
                 .OnSuccess(velocity => Create(id, maxVelocity, velocity))
                 .OnBoth(vehicleResult => vehicleResult);
         }
+
+        public override string ToString() => 
+            $"VehicleId {Id} - Current Speed: {CurrentVelocity} - Max Speed: {MaxVelocity}";
     }
 
     public static class VehicleExtensions
@@ -48,21 +52,36 @@ namespace Core
             }
         }
 
-        public static Result<Vehicle> Drive(this Vehicle vehicle)
+        public static void PrintToLog(this Vehicle vehicle, Action<string> logger)
+        {
+            if(logger != null) logger(vehicle.ToString());
+        }
+
+        public static Result<Vehicle> Drive(this Vehicle vehicle, Action<string> logger, Action<Vehicle> statusFn, CancellationToken cancellationToken)
+        {
+            var newVehicle = vehicle;
+            do
+            {
+                var speedUpResult = newVehicle.SpeedUp();
+                if(speedUpResult.IsFailure) return speedUpResult;
+                newVehicle = speedUpResult.Value;
+                newVehicle.PrintToLog(logger);
+                statusFn(newVehicle);
+                Thread.Sleep(1000);
+            } while(!cancellationToken.IsCancellationRequested);
+
+            return Result.Ok(newVehicle);
+        }
+
+        public static Result<Vehicle> SpeedUp(this Vehicle vehicle)
         {
             var randomSpeedToAdd = Utilities.GetRandomDouble(1, 10);
             var velocityToSetResult = vehicle.CurrentVelocity + Velocity.Create(randomSpeedToAdd);
             if(velocityToSetResult.IsFailure)
-                return Result.Fail<Vehicle>(velocityToSetResult.Error);
+                return Result.Fail<Vehicle>($"Cannot speed up vehicle [{vehicle}]. Reason: {velocityToSetResult.Error}");
 
             var velocityToSet = velocityToSetResult.Value <= vehicle.MaxVelocity ? velocityToSetResult.Value : vehicle.MaxVelocity;
             return Vehicle.Create(vehicle.Id, vehicle.MaxVelocity, velocityToSet);
-        }
-
-        public static void PrintToLog(this Vehicle vehicle, Action<string> logger)
-        {
-            if(logger != null)
-                logger($"VehicleId {vehicle.Id} - Current Speed: {vehicle.CurrentVelocity} - Max Speed: {vehicle.MaxVelocity}");
         }
     }
 }
