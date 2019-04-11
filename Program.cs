@@ -3,6 +3,9 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Application;
+using Infrastructure;
+using Infrastructure.Contracts;
+
 using CSharpFunctionalExtensions;
 
 namespace RoadSimulation
@@ -14,8 +17,9 @@ namespace RoadSimulation
         public static async Task Main(string[] args)
         {
             var cancellationToken = new CancellationToken();
+            IConfig configuration = new AppConfiguration();
 
-            await Simulation.InitializeWithLogger(LogInfoToConsole)
+            await Simulation.InitializeWithLogger(LogInfoToConsole, configuration)
                 .OnSuccess(simulation => simulation.Simulate(LogInfoToConsole, cancellationToken))
                 .OnFailure(LogErrorToConsole);
             LogInfoToConsole("Simulation finished");

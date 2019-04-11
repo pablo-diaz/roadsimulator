@@ -8,6 +8,7 @@ using Core;
 using Core.Types;
 
 using CSharpFunctionalExtensions;
+using Infrastructure.Contracts;
 
 namespace Application
 {
@@ -17,27 +18,25 @@ namespace Application
         private SortedDictionary<int, Vehicle> _vehicleStatusesDb = new SortedDictionary<int, Vehicle>();
         private static object __lockObj = new object();
 
-        private readonly Velocity _minVelocitySetting;
-        private readonly Velocity _maxVelocitySetting;
-        private readonly int _minVehiclesCuotaSetting = 5;
-        private readonly int _maxVehiclesCuotaSetting = 10;
-        private readonly int _maxTracksToCreate = 20;
-        private readonly int _maxVehiclesToCreate = 40;
+        private readonly Velocity _minAllowedVelocitySetting;
+        private readonly Velocity _maxAllowedVelocitySetting;
+        private readonly IConfig _configuration;
 
-        private Simulation(Action<string> logInfoFn, Velocity minVelocity, Velocity maxVelocity)
+        private Simulation(Action<string> logInfoFn, Velocity minAllowedVelocity, Velocity maxAllowedVelocity, IConfig configuration)
         {
             this._logInfoFn = logInfoFn;
-            this._minVelocitySetting = minVelocity;
-            this._maxVelocitySetting = maxVelocity;
+            this._minAllowedVelocitySetting = minAllowedVelocity;
+            this._maxAllowedVelocitySetting = maxAllowedVelocity;
+            this._configuration = configuration;
         }
 
-        public static Result<Simulation> InitializeWithLogger(Action<string> logInfoFn)
+        public static Result<Simulation> InitializeWithLogger(Action<string> logInfoFn, IConfig configuration)
         {
-            var minAndMaxVelocityResult = SetupMinAndMaxVelocities();
+            var minAndMaxVelocityResult = SetupMinAndMaxVelocities(configuration);
             if(minAndMaxVelocityResult.IsFailure)
                 return Result.Fail<Simulation>(minAndMaxVelocityResult.Error);
             return Result.Ok(new Simulation(logInfoFn, minAndMaxVelocityResult.Value.minVelocity, 
-                minAndMaxVelocityResult.Value.maxVelocity));
+                minAndMaxVelocityResult.Value.maxVelocity, configuration));
         }
 
         public async Task<Result> Simulate(Action<string> loggerFn, CancellationToken cancellationToken)
@@ -65,10 +64,10 @@ namespace Application
             return road;
         }
 
-        private static Result<(Velocity minVelocity, Velocity maxVelocity)> SetupMinAndMaxVelocities()
+        private static Result<(Velocity minVelocity, Velocity maxVelocity)> SetupMinAndMaxVelocities(IConfig configuration)
         {
-            var minVelocityResult = Velocity.Create(30);
-            var maxVelocityResult = Velocity.Create(80);
+            var minVelocityResult = Velocity.Create(configuration.GetMinAllowedVelocity());
+            var maxVelocityResult = Velocity.Create(configuration.GetMaxAllowedVelocity());
             if (minVelocityResult.IsFailure)
                 Result.Fail<(Velocity, Velocity)>($"Error setting min. velocity. Reason: {minVelocityResult.Error}");
             if (maxVelocityResult.IsFailure)
@@ -79,10 +78,10 @@ namespace Application
         private Result<Road> SetupRoad()
         {
             return Road.CreateEmpty()
-                .AddRandomTracks(this._maxTracksToCreate, this._minVehiclesCuotaSetting, 
-                    this._maxVehiclesCuotaSetting, TrackExtensions.CreateRandomTracks)
-                .OnSuccess(road => road.AddRandomVehiclesToRoad(this._minVelocitySetting, 
-                    this._maxVelocitySetting, this._maxVehiclesToCreate, 
+                .AddRandomTracks(this._configuration.GetMaxTracksToCreate(), this._configuration.GetMinVehiclesCuota(), 
+                    this._configuration.GetMaxVehiclesCuota(), TrackExtensions.CreateRandomTracks)
+                .OnSuccess(road => road.AddRandomVehiclesToRoad(this._minAllowedVelocitySetting, 
+                    this._maxAllowedVelocitySetting, this._configuration.GetMaxVehiclesToCreate(), 
                     VehicleExtensions.CreateRandomVehicles, this._logInfoFn));
         }
 
