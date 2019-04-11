@@ -52,7 +52,7 @@ namespace Core.Types
         public static bool operator >=(Velocity velocity1, Velocity velocity2) =>
             velocity1.Value >= velocity2.Value;
 
-        public override string ToString() => this.Value.ToString();
+        public override string ToString() => this.Value.ToString("F2").PadLeft(6, '0');
 
         public override int GetHashCode() => this.Value.GetHashCode();
 

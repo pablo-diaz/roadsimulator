@@ -35,8 +35,11 @@ namespace Core
                 .OnBoth(vehicleResult => vehicleResult);
         }
 
-        public override string ToString() => 
-            $"VehicleId {Id} - Current Speed: {CurrentVelocity} - Max Speed: {MaxVelocity}";
+        public override string ToString()
+        {
+            var sId = Id.ToString().PadLeft(4, '0');
+            return $"VehicleId {sId} - Current Speed: {CurrentVelocity} - Max Speed: {MaxVelocity}";
+        } 
     }
 
     public static class VehicleExtensions

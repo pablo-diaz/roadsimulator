@@ -14,7 +14,7 @@ namespace Application
     public class Simulation
     {
         private readonly Action<string> _logInfoFn;
-        private Dictionary<int, Vehicle> _vehicleStatusesDb = new Dictionary<int, Vehicle>();
+        private SortedDictionary<int, Vehicle> _vehicleStatusesDb = new SortedDictionary<int, Vehicle>();
         private static object __lockObj = new object();
 
         private readonly Velocity _minVelocitySetting;
@@ -22,7 +22,7 @@ namespace Application
         private readonly int _minVehiclesCuotaSetting = 5;
         private readonly int _maxVehiclesCuotaSetting = 10;
         private readonly int _maxTracksToCreate = 20;
-        private readonly int _maxVehiclesToCreate = 50;
+        private readonly int _maxVehiclesToCreate = 40;
 
         private Simulation(Action<string> logInfoFn, Velocity minVelocity, Velocity maxVelocity)
         {
@@ -45,21 +45,24 @@ namespace Application
             this._logInfoFn("Starting simulation set up ....");
             var simulationThreads = new List<Task>();
             var result = SetupRoad()
-                .OnSuccess(road => {
-                    var vehiclesCount = road.GetTotalVehiclesCountPlacedInTracks();
-                    var numOfWatcherThreads = 1;
-                    var numOfThreadsToAllocate = vehiclesCount + numOfWatcherThreads;
-                    ThreadPool.SetMinThreads(numOfThreadsToAllocate, numOfThreadsToAllocate);
-                    return road;
-                })
+                .OnSuccess(SetupThreadPoolForRoadConditions)
                 .OnSuccess(road => StartSimulationThreadsForRoad(road, null, KeepTrackOfVehicleState, cancellationToken))
-                .OnSuccess(vehicleThreads => simulationThreads.AddRange(vehicleThreads))
+                .OnSuccess(simulationThreads.AddRange)
                 .OnSuccess(() => RunVehicleStatusWatcherThread(loggerFn, cancellationToken))
-                .OnSuccess(vehicleStatusWatcherThread => simulationThreads.Add(vehicleStatusWatcherThread));
+                .OnSuccess(simulationThreads.Add);
 
             await Task.WhenAll(simulationThreads);
 
             return result;
+        }
+
+        private Road SetupThreadPoolForRoadConditions(Road road)
+        {
+            var vehiclesCount = road.GetTotalVehiclesCountPlacedInTracks();
+            var numOfWatcherThreads = 1;
+            var numOfThreadsToAllocate = vehiclesCount + numOfWatcherThreads;
+            ThreadPool.SetMinThreads(numOfThreadsToAllocate, numOfThreadsToAllocate);
+            return road;
         }
 
         private static Result<(Velocity minVelocity, Velocity maxVelocity)> SetupMinAndMaxVelocities()
@@ -130,6 +133,7 @@ namespace Application
                 {
                     lock(__lockObj)
                     {
+                        Console.Clear();
                         foreach(var vehicleEntry in this._vehicleStatusesDb)
                             vehicleEntry.Value.PrintToLog(loggerFn);
                         loggerFn("----------------------------------------------------");
